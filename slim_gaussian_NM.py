@@ -7,10 +7,10 @@ import time
 from scipy.optimize import minimize
 
 #Optimization terminated successfully.
-#         Current function value: 1562.104792
-#         Iterations: 39
-#         Function evaluations: 76
-#optimization took 0.29s
+#         Current function value: 1726.569850 
+#         Iterations: 35
+#         Function evaluations: 68
+#optimization took 0.23s
 
 plt.rcParams['image.cmap'] = 'hot'
 __screenfile__ = 'gaussian_screen.bin'
@@ -18,7 +18,7 @@ __screenfile__ = 'gaussian_screen.bin'
 
 def initialize(m,dx,screenfile='gaussian_screen.bin'):
     # generate screen
-    slimscat.generate_screen(screenfile=screenfile)
+    slimscat.generate_screen(screenfile=screenfile,dx=dx)
     return slimscat.run_slimscat(m,dx,screenfile=screenfile)
 
 def addNoise(m,dx,screenfile='gaussian_screen.bin'):
@@ -33,6 +33,7 @@ def lnprior(theta):
 
 def lnlike(theta,m,d,w,sigma):
     m.set_all(*theta)
+    #return -0.5 * np.sum(w*(m.source-d)**2)
     mBroad = m.broaden(sigma)
     return -0.5 * np.sum(w*(mBroad-d)**2)
 
@@ -48,9 +49,10 @@ if __name__ == '__main__':
     ftot = 3.
     fwhm = 37.
     snr = 100
-    dx = 1; nx = 128;
-    m = model(ftot,fwhm,nx,dx)
-    #mNoisy = initialize(m,dx)
+    #dx = 1; nx = 128;
+    dx = 4; nx = 32;
+    m = model(ftot,fwhm,nx=nx,dx=dx)
+    #mNoisy = initialize(m.source,dx)
     mNoisy = addNoise(m.source,dx)
     noise = mNoisy - m.source
 
@@ -75,6 +77,7 @@ if __name__ == '__main__':
         options={'disp':True,'maxiter':int(100*100)})
     print 'optimization took %0.2fs' % (time.time()-tic)
 
+    print 'result:', res.x
     m.set_all(*res.x)
     fit = m.source
 

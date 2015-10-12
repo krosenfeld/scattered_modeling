@@ -6,14 +6,14 @@ import time
 import emcee
 import corner
 
-#bestfit 2.67, 31.21
+#bestfit 3.02, 35.23
 #takes 337s
 
 plt.rcParams['image.cmap'] = 'hot'
 
 def initialize(m,dx,screenfile='gaussian_screen.bin'):
     # generate screen
-    slimscat.generate_screen(screenfile=screenfile)
+    slimscat.generate_screen(screenfile=screenfile,dx=dx)
     return slimscat.run_slimscat(m,dx,screenfile=screenfile)
 
 def addNoise(m,dx,screenfile='gaussian_screen.bin'):
@@ -35,8 +35,9 @@ def lnprior(theta):
 
 def lnlike(theta,m,d,w,sigma):
     m.set_all(*theta)
-    mBroad = m.broaden(sigma)
-    return -0.5 * np.sum(w*(mBroad-d)**2)
+    return -0.5 * np.sum(w*(m.source-d)**2)
+    #mBroad = m.broaden(sigma)
+    #return -0.5 * np.sum(w*(mBroad-d)**2)
 
 def lnprob(theta,*args):
     lp = lnprior(theta)
@@ -50,9 +51,9 @@ if __name__ == '__main__':
     ftot = 3.
     fwhm = 37.
     snr = 100
-    dx = 1; nx = 128;
-    m = model(ftot,fwhm,nx,dx)
-    #mNoisy = initialize(m,dx)
+    dx = 4; nx = 32;
+    m = model(ftot,fwhm,nx=nx,dx=dx)
+    #mNoisy = initialize(m.source,dx)
     mNoisy = addNoise(m.source,dx)
     noise = mNoisy - m.source
 
@@ -70,7 +71,8 @@ if __name__ == '__main__':
     #w = 1./noise.std()**2
     w = m.source.sum()/np.sum(noise**2*m.source)
     # initialize sampler
-    initial = np.array([ftot, fwhm])
+    #initial = np.array([ftot, fwhm])
+    initial = [  3.,  40.5]
     nwalkers = 100
     ndim = len(initial)
     p0 = [np.array(initial) + 1e-8 * np.random.randn(ndim)
@@ -94,7 +96,7 @@ if __name__ == '__main__':
     bestfit = samples[np.argmax(sampler.flatlnprobability),:]
     print 'bestfit %0.2f, %0.2f' % (bestfit[0],bestfit[1])
 
-    mFit = model(*bestfit)
+    mFit = model(*bestfit,nx=nx,dx=dx)
     mFit.broaden(sigma)
 
     # figures
